@@ -3,4 +3,4 @@ A collection of MATLAB functions which can be used to analyze neuroimaging data 
 
 ## Installation
 
-Clone the repository and it's contents to a folder on your computer, and add the folder to your MATLAB path. Then you will be able to use these functions for AA.
+Clone the repository and it's contents to a folder on your computer and add the folder to your MATLAB path. Then you will be able to use these functions for AA.
