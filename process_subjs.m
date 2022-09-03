@@ -1,4 +1,4 @@
-function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifier,tasknames,process_fmaps)
+function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifier,tasknames,process_fmaps,process_4D)
     for i=1:size(subj_list,2)
         if size(session_identifier,2) == 6
             session_identifier = session_identifier(2:6);
@@ -6,7 +6,7 @@ function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifi
         subj = subj_list{i}; % Get the subject namez
         anat_dir = fullfile(DATA_PATH,subj,session_identifier,'anat'); % Form their anatomical directory
         anat_path = dir(fullfile(anat_dir,'*run-1_T1w*.nii')); % Get the first T1.
-        anat_hdr = dir(fullfile(anat_dir,'*run-1_T1w.json')); % Get the header file
+        anat_hdr = dir(fullfile(anat_dir,'*run-1_T1w*.json')); % Get the header file
 
         subject_data_anat = struct('fname',fullfile(anat_path.folder,anat_path.name),'hdr', fullfile(anat_hdr.folder,anat_hdr.name));
         subject_data_func = {}; % 
@@ -30,14 +30,21 @@ function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifi
             func_dir = fullfile(DATA_PATH,subj,session_identifier,'func');
             func_path = dir(fullfile(func_dir,strcat('*',select_func,'*','.nii*')));
             func_hdr = dir(fullfile(func_dir,strcat('*',select_func,'*','.json')));
-            if ~isempty(func_path) % if a matching task was found, add it.
-                func_files = {func_path(:).name};
-                for i=1:size(func_files,2)
-                    func_files{i} = fullfile(func_path(1).folder,func_files{i});
+            if ~process_4D
+                if ~isempty(func_path) % if a matching task was found, add it.
+                    func_files = {func_path(:).name};
+                    for i=1:size(func_files,2)
+                        func_files{i} = fullfile(func_path(1).folder,func_files{i});
+                    end
+                    subject_data_func{end+1} = struct('fname',{func_files},'hdr',fullfile(func_hdr.folder,func_hdr.name));
+                else
+                    aas_log(aap,false,['WARNING: Task ' select_func ' was not found for ' subj]);
                 end
-                subject_data_func{end+1} = struct('fname',{func_files},'hdr',fullfile(func_hdr.folder,func_hdr.name));
             else
-                aas_log(aap,false,['WARNING: Task ' select_func ' was not found for ' subj]);
+                for i=1:size(func_path,1)
+                    tmp_struct = struct('fname',fullfile(func_path(i).folder,func_path(i).name),'hdr',fullfile(func_hdr(i).folder,func_hdr(i).name));
+                    subject_data_func{end+1} = tmp_struct;
+                end
             end
         end
         if process_fmaps && ~isempty(subject_data_fmap)
@@ -48,4 +55,3 @@ function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifi
     end
     aa_structure = aap;
 end
-
