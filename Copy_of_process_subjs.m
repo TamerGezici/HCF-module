@@ -4,29 +4,26 @@
 % to process fieldmaps, the corresponding parameter needs to be true.
 % to process files as 4D NiFTI files, you must make the corresponding parameter true. (This slows down analysis, so use 3D NiFTI instead)
 % 
-function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifier,tasknames,process_fmaps,process_4D,alternative)
-    bids_session_identifier = session_identifier;
-    for sub=1:size(subj_list,2)
-        subj = subj_list{sub}; % Get the subject namez
-        subj_file_name = strcat(subj,bids_session_identifier,'_task-');
-
+function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifier,tasknames,process_fmaps,process_4D)
+    for i=1:size(subj_list,2)
         if size(session_identifier,2) == 6
             session_identifier = session_identifier(2:6);
         end
-
+        subj = subj_list{i}; % Get the subject namez
         anat_dir = fullfile(DATA_PATH,subj,session_identifier,'anat'); % Find their anatomical directory
         anat_path = dir(fullfile(anat_dir,'*run-1_T1w*.nii')); % Get the first structural image.
         anat_hdr = dir(fullfile(anat_dir,'*run-1_T1w*.json')); % Get the header file for the structural image
 
         subject_data_anat = struct('fname',fullfile(anat_path.folder,anat_path.name),'hdr', fullfile(anat_hdr.folder,anat_hdr.name)); % receive the file name and it's .json header.
         subject_data_func = {}; % 
-        
+
         fmap_dir = fullfile(DATA_PATH,subj,session_identifier,'fmap');
         fmap_path = dir(fullfile(fmap_dir,'*.nii')); % Get all fieldmaps
         fmap_hdr = dir(fullfile(fmap_dir,'*.json')); % Get the header file for fieldmaps
 
         fmaps = {fmap_path(:).name}; % fieldmap file names and headers need to be kept seperately
         fmap_hdrs = {fmap_hdr(:).name};
+
         for j = 1:numel(fmaps)
             fmaps{j} = fullfile(fmap_dir,fmaps{j});
             fmap_hdrs{j} = fullfile(fmap_dir,fmap_hdrs{j});
@@ -37,15 +34,8 @@ function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifi
         for i = 1:size(tasknames,2) % loop over all tasknames (the tasks which you will be processing)
             select_func = tasknames{i};
             func_dir = fullfile(DATA_PATH,subj,session_identifier,'func');
-            func_path = dir(fullfile(func_dir,strcat(subj_file_name,select_func,'*','.nii*'))); % select the functional NIfTI files which correspond to this taskname
-            func_hdr = dir(fullfile(func_dir,strcat(subj_file_name,select_func,'*','.json'))); % find it's header
-            if isempty(func_path)
-                if ~isempty(alternative)
-                    select_func = alternative{i};
-                    func_path = dir(fullfile(func_dir,strcat(subj_file_name,select_func,'*','.nii*'))); % select the functional NIfTI files which correspond to this taskname
-                    func_hdr = dir(fullfile(func_dir,strcat(subj_file_name,select_func,'*','.json'))); % find it's header
-                end
-            end
+            func_path = dir(fullfile(func_dir,strcat('*',select_func,'*','.nii*'))); % select the functional NifTI files which correspond to this taskname
+            func_hdr = dir(fullfile(func_dir,strcat('*',select_func,'*','.json'))); % find it's header
             if ~process_4D % if not processing 4D files, the data is added to the aap structure differently.
                 if ~isempty(func_path) % if a matching task was found, add it.
                     func_files = {func_path(:).name};
@@ -54,7 +44,6 @@ function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifi
                     end
                     subject_data_func{end+1} = struct('fname',{func_files},'hdr',fullfile(func_hdr.folder,func_hdr.name)); % put them to a cell array which contains a structure
                 else % otherwise, throw an error.
-                    subject_data_func{end+1} = [];
                     aas_log(aap,false,['WARNING: Task ' select_func ' was not found for ' subj]);
                 end
             else % if processing 4D files, a single header and file is added.
