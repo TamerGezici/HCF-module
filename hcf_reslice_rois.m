@@ -12,7 +12,7 @@ function hcf_reslice_rois(beta_path,roi_path)
     resliced_out_path = fullfile(roi_path,'resliced');
     % Create a new directory "resliced" if it does not exist
     if ~exist(resliced_out_path, 'dir');
-        mkdir('resliced');
+        mkdir(resliced_out_path);
     end
 
     % Move all matching files to the "resliced" directory
