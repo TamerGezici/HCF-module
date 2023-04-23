@@ -11,7 +11,6 @@ function [aa_struct] = setup_defaults(aap,RESULTS_DIR,DATA_PATH,ROOT_PATH,TPM_DI
     aap.acq_details.input.correctEVfordummies = 0;
     aap.options.NIFTI4D = process_4D;
     aap.options.garbagecollection = garbage_collection;
-    aap.tasksettings.aamod_norm_write_epi.diagnostic.streamind = 0; % Disables check reg
     %
     aa_struct = aap;
 end

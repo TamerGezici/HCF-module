@@ -3,15 +3,34 @@
 % receives a list of contrasts to look for, this is necessary to loop over the contrasts container map which contains the contrast vectors. The order of occurence in the
 % contrast container map needs to be same as the order of the contrast list, as MATLAB does not have ordered hash maps.
 function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,contrast_list,contrasts)
+    sample_subs = {dir(fullfile(events_folder)).name};
+    sample_sub = sample_subs(end);
+    non_BIDS_subjname = false;
+    if ~contains(sample_sub,'-') % if the events are not in sub-n format.
+        non_BIDS_subjname = true;
+    end
     for sub = 1:size(subj_list,2)
         subject_number = subj_list(sub);
         subject_number = subject_number{1};
-        %your event file names need to be in sub-n format (eg. sub-17)
-        event_dir = fullfile(events_folder, subject_number(1:6));
-        % You can input csv files as well, then the columns need to be
-        % named, though.
+        event_dir = fullfile(events_folder, subject_number);
+        file_ext = '';
+        if non_BIDS_subjname
+            event_dir = fullfile(events_folder, strrep(subject_number,'-',''));
+        end
         if isfile([event_dir,'.csv'])
-            events = readtable([event_dir,'.csv']);
+            file_ext = '.csv';
+        end
+        if isfile([event_dir,'.xlsx'])
+            file_ext = '.xlsx';
+        end
+        if isfile([event_dir,'.mat'])
+            file_ext = '.mat';
+        end
+        if isempty(file_ext)
+            error('Event file for subject %s not found!',subject_number);
+        end
+        if strcmp(file_ext,'.csv') || strcmp(file_ext,'.xlsx')
+            events = readtable([event_dir,file_ext]);
             n_sessions = max(events.session);
             participant_sessions = 'sessions:';
             for session = 1:n_sessions % runs (or tasks)
@@ -33,10 +52,11 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
                     end
                 end
             end
-        else % otherwise, just load them as matrices.
+        end
+        if strcmp(file_ext,'.mat') % otherwise, just load them as matrices.
             n_conditions = length(evnames); % number of events
             events = [];
-            events = load([event_dir, '.mat']); % only take the sub-n part for example: sub-01  (erase(subject_number(1:6),"-")) )remove - while checking for the file
+            events = load([event_dir, '.mat']); % only take the sub-n part for example: sub-01   )remove - while checking for the file
             participant_name=fieldnames(events); % get the participant name as a string
             eval(strcat('events=events.',participant_name{end},';')); % take this participant from the struct
             n_sessions = max(events(:,1));
@@ -63,7 +83,7 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
         %% Specify contrasts PER participant here.
         %% If you will estimate a model with no contrasts, pass an empty array to the function.
         if ~isempty(contrasts)
-            participant_sessions = participant_sessions(1:end-1); % removes the "+" at the end
+            %participant_sessions = participant_sessions(1:end-1); % removes the "+" at the end
             participant_sessions = 'sameforallsessions';
             for i=1:size(contrast_list,2) % loop over your contrasts
                 curr_contrast = contrast_list{i};

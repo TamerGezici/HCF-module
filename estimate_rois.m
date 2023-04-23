@@ -1,16 +1,17 @@
-function [outputArg1] = estimate_rois(subjects,first_level_dir,smoothened_dir,task_filter,roi_dir,events_dir_name)
+function [group_level_results] = estimate_rois(subjects,first_level_dir,smoothened_dir,task_filter,roi_dir,events_dir_name,work_dir)
     mbd = fullfile(spm('dir'),'toolbox','marsbar');
     spm;
-    marsbar on
+    marsbar on;
+    close all;
     if exist(mbd)==7
         addpath(mbd); 
     end
     
-    roi_dir = fullfile(pwd,'ROI',events_dir_name,'roi_list');
-    resdir = fullfile(pwd,'ROI',events_dir_name,'results');
+    resdir = fullfile(work_dir,'ROI_results',events_dir_name);
     if exist(resdir)~=7
         mkdir(resdir);
         mkdir(fullfile(resdir,'csv'));
+        mkdir(fullfile(resdir,'session_averages'));
     end
     
     roi_summary_function = 'mean'; % what function marsbar uses to summarise
@@ -24,7 +25,7 @@ function [outputArg1] = estimate_rois(subjects,first_level_dir,smoothened_dir,ta
      
     nsubs = length(subjects);
     % Get ROIs ****************************************************************
-    rois = spm_select('List',roi_dir,'roi.mat$');
+    rois = spm_select('List',roi_dir,'.mat$');
     files = dir(fullfile(roi_dir,'*.mat'));
     roi_names = {files.name};
     nrois = size(rois,1);
@@ -46,8 +47,9 @@ function [outputArg1] = estimate_rois(subjects,first_level_dir,smoothened_dir,ta
         clear SPM f
         csub = subjects{subj_no};
         desfile = fullfile(first_level_dir,csub,'stats','SPM.mat');
-        SPM = load(desfile);
-        D = mardo(SPM);
+        D = mardo(desfile);
+        %D = cd_images(D, fullfile(smoothened_dir,csub));
+        save_spm(D);
         current_sub_result_table = table();        
         % Loop through ROIs
         for r=1:nrois
@@ -59,8 +61,8 @@ function [outputArg1] = estimate_rois(subjects,first_level_dir,smoothened_dir,ta
             SPM = des_struct(E); %unpack marsbar design structure
             subject_session_counts(csub,'count') = {size(SPM.Sess,2)};
             smeans = SPM.betas(SPM.xX.iB); % session means - these are used for calculating percent signal change
-            res.beta{r,subj_no} = SPM.betas(SPM.xX.iC);
-            beta_estimates = SPM.betas(SPM.xX.iC)';% load beta values for effects of interest into results structure
+            res.beta{r,subj_no} = SPM.betas(SPM.xX.iC);% load beta values for effects of interest into results structure
+            beta_estimates = SPM.betas(SPM.xX.iC)';
             current_roi_name = strrep({roi_names{r}},'.mat','');
             regressor_names = strrep(SPM.xX.name(SPM.xX.iC),'*bf(1)','');       
             for beta_number=1:size(beta_estimates,2)
@@ -109,18 +111,48 @@ function [outputArg1] = estimate_rois(subjects,first_level_dir,smoothened_dir,ta
         end
         all_subject_results(subj_no) = {current_sub_result_table};
         save(fullfile(resdir,'all_subject_results'),'all_subject_results');
+        save(fullfile(resdir,'results'),'res');
     end
-    save(resmat,'res');
     
+    clean_roi_names = strrep(roi_names,'.mat','');
+    all_subjects_cell = {}; % put all subjects' table in a cell array
     for subject = 1:size(subjects,2)
         subj_name = subjects{subject};    
         subj_table = all_subject_results{subject};
+        combined_subj_table = table();
         n_sessions = subject_session_counts{subj_name,'count'};
-        for session = 1:n_sessions
-            for regressor = 1:size(regressor_names,2)
-                stripped = strrep(SPM.xX.name(SPM.xX.iC),'*bf(1)','');    
+        for regressor = 1:size(regressor_names,2)
+            reg_index = strfind(regressor_names{regressor},' '); 
+            reg_name = regressor_names{regressor}(reg_index+1:end); % find our general regressor name, disregarding session number
+            selected_sessions = {}; % which sessions to select?
+            for session = 1:n_sessions
+                sess_reg = ['Sn(' num2str(session) ')' ' ' reg_name]; % find the regressor for that specific session
+                if ismember(sess_reg,subj_table.Properties.VariableNames)
+                    selected_sessions{end+1} = sess_reg; % put them in a cell array (this is to find values for this specific regressor for all sessions)
+                end
+            end
+            averages = mean(subj_table{:,selected_sessions},2); % get an average of all sessions for this regressor
+            for roi = 1:size(clean_roi_names,2)
+                combined_subj_table(clean_roi_names{roi},reg_name) = {averages(roi)};
+            end
+        end
+        all_subjects_cell{subject} = combined_subj_table;
+        writetable(combined_subj_table,fullfile(resdir,'session_averages',[csub '.csv']));
+    end
+    all_subjects_table = array2table(zeros(size(all_subjects_cell{1}.Properties.RowNames,1),...
+    size(all_subjects_cell{1}.Properties.VariableNames,2)),...
+    "RowNames",all_subjects_cell{1}.Properties.RowNames,...
+    "VariableNames",all_subjects_cell{1}.Properties.VariableNames);
+    for subject = 1:size(all_subjects_cell,2)
+        curr_table = all_subjects_cell{subject};
+        columns = all_subjects_cell{1}.Properties.VariableNames;
+        rows = all_subjects_cell{1}.Properties.RowNames;
+        for row=1:size(rows,1)
+            for col=1:size(columns,2)
+                all_subjects_table(row,col) = {all_subjects_table{rows{row},col} + curr_table{rows{row},col}};
             end
         end
     end
-    
+    group_level_results = array2table(table2array(all_subjects_table)/size(all_subjects_cell,2), 'variablenames', all_subjects_table.Properties.VariableNames, 'rownames', all_subjects_table.Properties.RowNames);
+    writetable(group_level_results,fullfile(resdir,'group_level_results.csv'),'WriteRowNames',true);
 end

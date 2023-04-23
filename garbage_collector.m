@@ -8,7 +8,9 @@ function garbage_collector(aap,exclude_modules,permanence_threshold)
         exclude_module_ids(end+1) = id;
     end
     modules_to_scan = 1:size(current_module_list,1);
-    modules_to_scan(modules_to_scan == exclude_module_ids) = [];
-    %aas_garbagecollection(aap, 0, modules_to_scan, 0);
+    if ~isempty(exclude_module_ids)
+        modules_to_scan(modules_to_scan == exclude_module_ids) = [];
+    else
+    aas_garbagecollection(aap, 1, modules_to_scan, 0);
 end
 

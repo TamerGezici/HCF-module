@@ -2,21 +2,20 @@
 % It receives a list of subjects (cell array), the aap structure, raw data path, session identifier (BIDS terminology) ie. _ses-1
 % receives a list of tasknames to process (for example, the task name in the functional images in BIDS format) some-task_run-01_bold.nii
 % to process fieldmaps, the corresponding parameter needs to be true.
-% to process files as 4D NiFTI files, you must make the corresponding parameter true. (This slows down analysis, so use 3D NiFTI instead)
+% to process files as 4D NiFTI files, you must make the corresponding parameter true. (This slows down analysis, so use 3D NIfTI instead)
 % 
 function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifier,tasknames,process_fmaps,process_4D,alternative)
     bids_session_identifier = session_identifier;
+    session_identifier = strrep(session_identifier,'_','');
     for sub=1:size(subj_list,2)
-        subj = subj_list{sub}; % Get the subject namez
+        subj = subj_list{sub}; % Get the subject namaz ~berfin
         subj_file_name = strcat(subj,bids_session_identifier,'_task-');
-
-        if size(session_identifier,2) == 6
-            session_identifier = session_identifier(2:6);
-        end
-
+        
+        anat_id = 1;
+        anat_select = ['*run-' num2str(anat_id) '_T1w*'];
         anat_dir = fullfile(DATA_PATH,subj,session_identifier,'anat'); % Find their anatomical directory
-        anat_path = dir(fullfile(anat_dir,'*run-1_T1w*.nii')); % Get the first structural image.
-        anat_hdr = dir(fullfile(anat_dir,'*run-1_T1w*.json')); % Get the header file for the structural image
+        anat_path = dir(fullfile(anat_dir,[anat_select '.nii'])); % Get the first structural image.
+        anat_hdr = dir(fullfile(anat_dir,[anat_select '.json'])); % Get the header file for the structural image
 
         subject_data_anat = struct('fname',fullfile(anat_path.folder,anat_path.name),'hdr', fullfile(anat_hdr.folder,anat_hdr.name)); % receive the file name and it's .json header.
         subject_data_func = {}; % 
