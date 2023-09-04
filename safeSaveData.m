@@ -19,4 +19,5 @@ function safeSaveData(FileName, Data, results_table, subjects_table)
     save(['table_' FileName], 'results_table');
     save(['subjects_' FileName], 'subjects_table');
     writetable(subjects_table,[strrep(FileName,'.mat','') '.csv']);
+    writetable(results_table,['results_' strrep(FileName,'.mat','') '.csv'],'WriteRowNames',true,'WriteVariableNames',true);
 end

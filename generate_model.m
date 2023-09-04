@@ -44,11 +44,23 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
                     if ~isempty(regressor_table) % if not empty.
                         durs = regressor_table.duration;
                         onsets = regressor_table.onset;
-                        aap = aas_addevent(aap,'aamod_firstlevel_model_*',subject_number,...
-                            aap.acq_details.sessions(session).name,... % run/session/taskname
-                            current_regressor,... % condition name (regressor name)
-                            onsets',... % onsets
-                            durs'); % durations
+                        if ismember('pm_name',regressor_table.Properties.VariableNames)
+                            parametric(1).name = regressor_table.pm_name;
+                            parametric(1).P = regressor_table.pm_vector;
+                            parametric(1).h = regressor_table.pm_expansion;
+                            aap = aas_addevent(aap,'aamod_firstlevel_model_*',subject_number,...
+                                aap.acq_details.sessions(session).name,... % run/session/taskname
+                                current_regressor,... % condition name (regressor name)
+                                onsets',... % onsets
+                                durs', ... % durations
+                                parametric); % parametric modulator
+                        else      
+                            aap = aas_addevent(aap,'aamod_firstlevel_model_*',subject_number,...
+                                aap.acq_details.sessions(session).name,... % run/session/taskname
+                                current_regressor,... % condition name (regressor name)
+                                onsets',... % onsets
+                                durs'); % durations
+                        end
                     end
                 end
             end

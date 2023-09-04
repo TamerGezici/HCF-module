@@ -1,4 +1,5 @@
 function [group_level_results] = estimate_rois(subjects,first_level_dir,smoothened_dir,task_filter,roi_dir,events_dir_name,work_dir)
+    % Leave task filter empty
     mbd = fullfile(spm('dir'),'toolbox','marsbar');
     spm;
     marsbar on;
@@ -10,7 +11,7 @@ function [group_level_results] = estimate_rois(subjects,first_level_dir,smoothen
     resdir = fullfile(work_dir,'ROI_results',events_dir_name);
     if exist(resdir)~=7
         mkdir(resdir);
-        mkdir(fullfile(resdir,'csv'));
+        mkdir(fullfile(resdir,'per_subj'));
         mkdir(fullfile(resdir,'session_averages'));
     end
     
@@ -28,6 +29,7 @@ function [group_level_results] = estimate_rois(subjects,first_level_dir,smoothen
     rois = spm_select('List',roi_dir,'.mat$');
     files = dir(fullfile(roi_dir,'*.mat'));
     roi_names = {files.name};
+    clean_roi_names = strrep(roi_names,'.mat','');
     nrois = size(rois,1);
     roi_short = rois;
     res.rois = rois;
@@ -47,10 +49,12 @@ function [group_level_results] = estimate_rois(subjects,first_level_dir,smoothen
         clear SPM f
         csub = subjects{subj_no};
         desfile = fullfile(first_level_dir,csub,'stats','SPM.mat');
+        %desfile = fullfile(first_level_dir,csub,'SPM.mat');
         D = mardo(desfile);
         %D = cd_images(D, fullfile(smoothened_dir,csub));
         save_spm(D);
-        current_sub_result_table = table();        
+        current_sub_result_table = table();
+
         % Loop through ROIs
         for r=1:nrois
             croi = deblank(rois(r,:));
@@ -64,11 +68,34 @@ function [group_level_results] = estimate_rois(subjects,first_level_dir,smoothen
             res.beta{r,subj_no} = SPM.betas(SPM.xX.iC);% load beta values for effects of interest into results structure
             beta_estimates = SPM.betas(SPM.xX.iC)';
             current_roi_name = strrep({roi_names{r}},'.mat','');
-            regressor_names = strrep(SPM.xX.name(SPM.xX.iC),'*bf(1)','');       
+
+            %% Rename regressors (remove that annoying bf(1) text)
+            spm_regressors = SPM.xX.name(SPM.xX.iC);
+            single_bf = true;
+            for i = 1:length(spm_regressors)
+                if contains(spm_regressors{i}, '*bf(2)')
+                    single_bf = false;
+                    break;
+                end
+            end
+            regressor_names = SPM.xX.name(SPM.xX.iC);
+            if single_bf
+                regressor_names = strrep(regressor_names,'*bf(1)','');   
+            end
+            if ~single_bf
+                pattern = '\*bf\((\d+)\)';
+                % Iterate through the cell array and replace the matched pattern
+                for i = 1:length(regressor_names)
+                    newElement = regexprep(regressor_names{i}, pattern, '_$1');
+                    regressor_names{i} = newElement;
+                end
+            end
+
             for beta_number=1:size(beta_estimates,2)
                 current_sub_result_table(current_roi_name{1},regressor_names{beta_number}) = {beta_estimates(beta_number)};
             end
-            writetable(current_sub_result_table,fullfile(resdir,'csv',[csub '.csv']));
+
+            writetable(current_sub_result_table,fullfile(resdir,'per_subj',[csub '.csv']),'WriteRowNames',true);
             
             % calculate percent signal change for each beta value, marsbar
             % style
@@ -114,7 +141,8 @@ function [group_level_results] = estimate_rois(subjects,first_level_dir,smoothen
         save(fullfile(resdir,'results'),'res');
     end
     
-    clean_roi_names = strrep(roi_names,'.mat','');
+
+    %% Averages all sessions for each subject and outputs them seperately. Removes the annoying sn(1)  text
     all_subjects_cell = {}; % put all subjects' table in a cell array
     for subject = 1:size(subjects,2)
         subj_name = subjects{subject};    
@@ -137,8 +165,10 @@ function [group_level_results] = estimate_rois(subjects,first_level_dir,smoothen
             end
         end
         all_subjects_cell{subject} = combined_subj_table;
-        writetable(combined_subj_table,fullfile(resdir,'session_averages',[csub '.csv']));
+        writetable(combined_subj_table,fullfile(resdir,'session_averages',[subj_name '.csv']),'WriteRowNames',true);
     end
+
+    %% Generates second level results
     all_subjects_table = array2table(zeros(size(all_subjects_cell{1}.Properties.RowNames,1),...
     size(all_subjects_cell{1}.Properties.VariableNames,2)),...
     "RowNames",all_subjects_cell{1}.Properties.RowNames,...

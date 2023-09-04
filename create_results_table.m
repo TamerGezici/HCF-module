@@ -9,4 +9,3 @@ function [table, subjects_table] = create_results_table(roi_list,condition_resul
     table = array2table(results_array,"VariableNames",string(roi_list),"RowNames",{'acc','acc_minus_fifty','h','p','cu','cl'});
     subjects_table = array2table(condition_results,"VariableNames",string(roi_list),"RowNames",subject_folders);
 end
-
