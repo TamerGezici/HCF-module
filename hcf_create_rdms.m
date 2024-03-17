@@ -1,6 +1,7 @@
-function hcf_create_rdms(rdms_path, vars, rois, subjs)
+% Creates RDMs in .csv format from the RSA script.
+function hcf_create_rdms(rdms_path, out_path, vars, rois, subjs)
     
-    out_path = fullfile(pwd,'RDMs');
+    out_path = fullfile(out_path,'RDMs_out');
     out_subjs = fullfile(out_path,'subjs');
     if exist(out_path)~=7
         mkdir(out_path);

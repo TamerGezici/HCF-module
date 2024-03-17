@@ -7,6 +7,6 @@ function ROI_data = hcf_extract_roi_data(ROI, Contrast)
     XYZ = [x y z]';
 
     ROI_data = spm_get_data(Contrast, XYZ);
-    zero_columns = all(ROI_data == 0, 1); % Remove voxels of ROI which do not contain any values
-    ROI_data = ROI_data(:, ~zero_columns);
+%     zero_columns = all(ROI_data == 0, 1); % Remove voxels of ROI which do not contain any values
+%     ROI_data = ROI_data(:, ~zero_columns);
 end

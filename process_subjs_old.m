@@ -5,35 +5,18 @@
 % to process files as 4D NiFTI files, you must make the corresponding parameter true. (This slows down analysis, so use 3D NIfTI instead)
 % 
 function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifier,tasknames,process_fmaps,process_4D,alternative)
-    
-    if ischar(session_identifier)
-        session_identifier = strrep(session_identifier,'_','');
-    end
-
-    session_container = NaN;
-    if isa(session_identifier, 'containers.Map')
-        session_container = session_identifier;
-    end
-
+    bids_session_identifier = session_identifier;
+    session_identifier = strrep(session_identifier,'_','');
     for sub=1:size(subj_list,2)
         subj = subj_list{sub}; % Get the subject namaz ~berfin
-        
+
         num_occurrences = cellfun(@(s) numel(strfind(s, 'sub-')), subj_list);
         if any(num_occurrences > 1)
             error("Your subject list appears to have a typo. Check this part: %s", subj_list{find(num_occurrences==max(num_occurrences))});
         end
-
-        if isa(session_container, 'containers.Map')
-            if isKey(session_container, subj)  
-                session_identifier = session_container(subj);
-            else
-                session_identifier = session_container('default');
-            end
-            session_identifier = strrep(session_identifier,'_','');
-        end
-
-        subj_file_name = strcat(subj,strcat('_', session_identifier),'_task-');
-    
+        
+        subj_file_name = strcat(subj,bids_session_identifier,'_task-');
+        
         anat_id = 1;
         anat_select = ['*run-' num2str(anat_id) '_T1w*'];
         anat_dir = fullfile(DATA_PATH,subj,session_identifier,'anat'); % Find their anatomical directory
@@ -41,7 +24,7 @@ function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifi
         anat_hdr = dir(fullfile(anat_dir,[anat_select '.json'])); % Get the header file for the structural image
 
         if ~isfile(fullfile(anat_path.folder,anat_path.name))
-            error("Subject %s does not have a structural image. Please check your data. Maybe you set the raw data path or BIDS session/visit incorrectly?", subj)
+            error("Subject %s does not have a structural image. Please check your data. Maybe you set the raw data path or BIDS session incorrectly?", subj)
         end
 
         subject_data_anat = struct('fname',fullfile(anat_path.folder,anat_path.name),'hdr', fullfile(anat_hdr.folder,anat_hdr.name)); % receive the file name and it's .json header.
@@ -66,7 +49,7 @@ function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifi
             func_path = dir(fullfile(func_dir,strcat(subj_file_name,select_func,'*','.nii*'))); % select the functional NIfTI files which correspond to this taskname
             func_hdr = dir(fullfile(func_dir,strcat(subj_file_name,select_func,'*','.json'))); % find it's header
             if isempty(func_path)
-                if ~isempty(alternative) % Not working
+                if ~isempty(alternative)
                     select_func = alternative{i};
                     func_path = dir(fullfile(func_dir,strcat(subj_file_name,select_func,'*','.nii*'))); % select the functional NIfTI files which correspond to this taskname
                     func_hdr = dir(fullfile(func_dir,strcat(subj_file_name,select_func,'*','.json'))); % find it's header
