@@ -47,7 +47,7 @@ for mask = 1:nMasks
         run_numbers = cellfun(@(name) sscanf(name, 'Sn(%d)'), SPM.xX.name);
         max_run_number = max(run_numbers);
         maskVoxelPatterns = zeros(size(normalisedPatterns,2), size(userOptions.conditionLabels,1) , max_run_number);
-        fprintf("Normalizing betas for %s\n", thisSubject);
+        fprintf("\nNormalizing betas for %s ROI: %s\n", thisSubject, thisMask);
         all_beta_names = SPM.xX.name;
         betas_of_interest = userOptions.conditionLabels;
 

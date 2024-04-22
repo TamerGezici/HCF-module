@@ -104,16 +104,19 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
             for i=1:size(contrast_list,2) % loop over your contrasts
                 curr_contrast = contrast_list{i};
                 unique_events = unique(events.event)';
-                contrast_events = regexp(contrasts(curr_contrast), '[A-Z]+', 'match');
+                contrast_events = regexp(contrasts(curr_contrast), '(?<=x)(.*?)(?=\||$)', 'match');
                 missing_events = setdiff(contrast_events, unique_events);
+                missing_events_str = strjoin(missing_events, ' ');
                 if ~isempty(missing_events) && ~missing_events_acknowledged
-                    message = sprintf('Event(s) %s for subject %s not found! Click "Ignore all subjects" to acknowledge and ignore all upcoming warnings for all subjects or click "stop" and check your subjects.',missing_events,subject_number);
-                    choice = questdlg(message, 'Event Error', 'Ignore all subjects', 'Stop', 'Ignore all subjects');
+                    message = sprintf('Event(s) %s for subject %s not found! Click "Ignore all subjects" to acknowledge and ignore all upcoming warnings for all subjects or click "stop" and check your subjects.\nClick "continue" to check missing events subject-by-subject.',missing_events_str,subject_number);
+                    choice = questdlg(message, 'Event Error', 'Ignore all subjects', 'Stop', 'Continue','Ignore all subjects');
                     switch choice
                         case 'Ignore all subjects'
                             missing_events_acknowledged = true;
                         case 'Stop'
                             error('Stopped the script as per user request'); 
+                        case 'Continue'
+                            sprintf('Moving on from %s',subject_number);
                     end
                 end
                 aap = aas_addcontrast(aap, 'aamod_firstlevel_contrasts', subject_number, participant_sessions, contrasts(curr_contrast), curr_contrast, 'T');
