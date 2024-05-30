@@ -103,50 +103,51 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
             participant_sessions = 'sameforallsessions';
             for i=1:size(contrast_list,2) % loop over your contrasts
                 curr_contrast = contrast_list{i};
-                unique_events = unique(events.event)';
-                contrast_events = regexp(contrasts(curr_contrast), '(?<=x)(.*?)(?=\||$)', 'match');
-                missing_events = setdiff(contrast_events, unique_events);
-                missing_events_str = strjoin(missing_events, ' ');
-                if ~isempty(missing_events) && ~missing_events_acknowledged
-                    message = sprintf('Event(s) %s for subject %s not found! Click "Ignore all subjects" to acknowledge and ignore all upcoming warnings for all subjects or click "stop" and check your subjects.\nClick "continue" to check missing events subject-by-subject.',missing_events_str,subject_number);
-                    choice = questdlg(message, 'Event Error', 'Ignore all subjects', 'Stop', 'Continue','Ignore all subjects');
-                    switch choice
-                        case 'Ignore all subjects'
-                            missing_events_acknowledged = true;
-                        case 'Stop'
-                            error('Stopped the script as per user request'); 
-                        case 'Continue'
-                            sprintf('Moving on from %s',subject_number);
+                if istable(events)
+                    unique_events = unique(events.event)';
+                    contrast_events = regexp(contrasts(curr_contrast), '(?<=x)(.*?)(?=\||$)', 'match');
+                    missing_events = setdiff(contrast_events, unique_events);
+                    missing_events_str = strjoin(missing_events, ' ');
+                    if ~isempty(missing_events) && ~missing_events_acknowledged
+                        message = sprintf('Event(s) %s for subject %s not found! Click "Ignore all subjects" to acknowledge and ignore all upcoming warnings for all subjects or click "stop" and check your subjects.\nClick "continue" to check missing events subject-by-subject.',missing_events_str,subject_number);
+                        choice = questdlg(message, 'Event Error', 'Ignore all subjects', 'Stop', 'Continue','Ignore all subjects');
+                        switch choice
+                            case 'Ignore all subjects'
+                                missing_events_acknowledged = true;
+                            case 'Stop'
+                                error('Stopped the script as per user request'); 
+                            case 'Continue'
+                                sprintf('Moving on from %s',subject_number);
+                        end
                     end
                 end
                 aap = aas_addcontrast(aap, 'aamod_firstlevel_contrasts', subject_number, participant_sessions, contrasts(curr_contrast), curr_contrast, 'T');
             end
-
-            % If we are doing analysis for different runs or tasks
-            if (isfield(aap.options,'skip_sessions') && aap.options.skip_sessions)
-                if ~sessions_skipped_acknowledged
-                    message = sprintf("You enabled aap.options.skip_sessions.\nThis means that if a task or run is unavailable\n" + ...
-                        "for a participant, it will be skipped and replaced with the available session for that participant.\n" + ...
-                        "If you don't know what this pertains to, you should disable this feature or consult Tamer before continuing analysis.\n\nClick continue if you know what you are doing.");
-                    choice = questdlg(message,'Warning: aap.options.skip_sessions is enabled','Cancel','Continue','Continue');
-                    switch choice
-                        case 'Cancel'
-                            error('Stopped the script as per user request'); 
-                        case 'Continue'
-                            sessions_skipped_acknowledged = true;
-                    end
+        end
+        % If we are doing analysis for different runs or tasks
+        if (isfield(aap.options,'skip_sessions') && aap.options.skip_sessions)
+            if ~sessions_skipped_acknowledged
+                message = sprintf("You enabled aap.options.skip_sessions.\nThis means that if a task or run is unavailable\n" + ...
+                    "for a participant, it will be skipped and replaced with the available session for that participant.\n" + ...
+                    "If you don't know what this pertains to, you should disable this feature or consult Tamer before continuing analysis.\n\nClick continue if you know what you are doing.");
+                choice = questdlg(message,'Warning: aap.options.skip_sessions is enabled','Cancel','Continue','Continue');
+                switch choice
+                    case 'Cancel'
+                        error('Stopped the script as per user request'); 
+                    case 'Continue'
+                        sessions_skipped_acknowledged = true;
                 end
-                if sessions_skipped_acknowledged 
-                    subj_acq_index = find(strcmp({aap.acq_details.subjects.subjname}, subject_number));
-                    subject_available_sessions = aap.acq_details.subjects(subj_acq_index).seriesnumbers{1};
-                    subject_available_session_indexes = find(cellfun(@isstruct, subject_available_sessions));
-                    session_names = {aap.acq_details.sessions(subject_available_session_indexes).name};
-                    subj_model_indices = find(strcmp({aap.tasksettings.aamod_firstlevel_model.model.subject}, subject_number));
-                    for index=1:length(subj_model_indices)
-                        sess_index = subj_model_indices(index);
-                        aas_log(aap,false,['WARNING: For  ' subject_number ' task or run ' session_names{index} ' will be used instead of ' aap.tasksettings.aamod_firstlevel_model.model(sess_index).session]);
-                        aap.tasksettings.aamod_firstlevel_model.model(sess_index).session = session_names{index};
-                    end
+            end
+            if sessions_skipped_acknowledged 
+                subj_acq_index = find(strcmp({aap.acq_details.subjects.subjname}, subject_number));
+                subject_available_sessions = aap.acq_details.subjects(subj_acq_index).seriesnumbers{1};
+                subject_available_session_indexes = find(cellfun(@isstruct, subject_available_sessions));
+                session_names = {aap.acq_details.sessions(subject_available_session_indexes).name};
+                subj_model_indices = find(strcmp({aap.tasksettings.aamod_firstlevel_model.model.subject}, subject_number));
+                for index=1:length(subj_model_indices)
+                    sess_index = subj_model_indices(index);
+                    aas_log(aap,false,['WARNING: For  ' subject_number ' task or run ' session_names{index} ' will be used instead of ' aap.tasksettings.aamod_firstlevel_model.model(sess_index).session]);
+                    aap.tasksettings.aamod_firstlevel_model.model(sess_index).session = session_names{index};
                 end
             end
         end

@@ -1,4 +1,4 @@
-function [group_level_results] = estimate_rois(subjects,first_level_dir,smoothened_dir,task_filter,roi_dir,events_dir_name,work_dir)
+function [group_level_results] = estimate_rois_native(subjects,first_level_dir,smoothened_dir,task_filter,roi_dir,events_dir_name,work_dir)
     % Leave task filter empty
     mbd = fullfile(spm('dir'),'toolbox','marsbar');
     spm;

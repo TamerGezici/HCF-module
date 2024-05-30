@@ -54,6 +54,10 @@ function [group_level_results] = estimate_rois(subjects,first_level_dir,smoothen
         %D = cd_images(D, fullfile(smoothened_dir,csub));
         save_spm(D);
         current_sub_result_table = table();
+        
+        if nrois == 0
+            error("No ROIs find. Check your ROI directory.")
+        end
 
         % Loop through ROIs
         for r=1:nrois
