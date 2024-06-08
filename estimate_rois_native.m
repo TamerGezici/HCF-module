@@ -43,25 +43,16 @@ function [group_level_results] = estimate_rois_native(subjects,first_level_dir,s
         files = dir(fullfile(roi_dir,csub,'*.mat'));
         roi_names = {files.name};
         clean_roi_names = strrep(roi_names,'.mat','');
-        nrois = size(roi_name,1);
-        roi_short = roi_name;
-        res.rois = roi_name;
-        %rois = [repmat([roi_dir filesep],nrois,1) rois];
-        rois = fullfile(roi_dir,csub,roi_name);
-        
-        for i = 1:nrois
-            nom = roi_short(i,:);
-            nom = deblank(nom);
-            l = length(nom);
-            nom = nom(1:4);
-            roishort{i}=nom;
-        end
+        nrois = size(roi_names,2);
+        res.rois = roi_name;      
+
 
         % Loop through ROIs
         for r=1:nrois
-            croi = deblank(rois(r,:));
+            croi = roi_names{r};
             disp([csub croi]);
-            R = maroi(croi); % load roi into a marsbar maroi object structure
+            roi_path = fullfile(roi_dir,csub,croi);
+            R = maroi(roi_path); % load roi into a marsbar maroi object structure
             Y = get_marsy(R,D,roi_summary_function); % get summarised time course for this ROI
             E = estimate(D,Y); % estimate design based on this summarised time course
             SPM = des_struct(E); %unpack marsbar design structure
