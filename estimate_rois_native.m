@@ -176,6 +176,40 @@ function [group_level_results] = estimate_rois_native(subjects,first_level_dir,s
             end
         end
     end
-    group_level_results = array2table(table2array(all_subjects_table)/size(all_subjects_cell,2), 'variablenames', all_subjects_table.Properties.VariableNames, 'rownames', all_subjects_table.Properties.RowNames);
+    group_level_results = array2table(table2array(all_subjects_table)/size(all_subjects_cell,2), 'variablenames', all_subjects_table.Properties.VariableNames, 'rownames', regexprep(all_subjects_table.Properties.RowNames, 'sub-\d+', ''));
     writetable(group_level_results,fullfile(resdir,'group_level_results.csv'),'WriteRowNames',true);
+
+    %% Combine all subjects' results into a single CSV file
+    % Define the directory containing your CSV files
+    directory = fullfile(resdir,'session_averages');
+
+    % Get a list of all CSV files in the directory
+    files = dir(fullfile(directory, '*.csv'));
+
+    % Initialize combined data
+    combinedData = [];
+
+    % Loop through each CSV file
+    for i = 1:length(files)
+        % Read the CSV file
+        filename = fullfile(directory, files(i).name);
+        data = readtable(filename);
+        
+        % Append subject identifier to each ROI
+        subjectID = repmat({strtok(files(i).name, '.')}, height(data), 1);
+        data.Subject = subjectID;
+        
+        % Combine data
+        combinedData = [combinedData; data];
+    end
+    
+    % Rename the "Row" column to "ROI"
+    combinedData = renamevars(combinedData, 'Row', 'ROI');
+
+    % Rearrange columns to make "subject" the first column
+    subjectCol = combinedData(:, {'Subject'});
+    combinedData = combinedData(:, [size(combinedData, 2), 1:(size(combinedData, 2) - 1)]);
+    combinedData.ROI = regexprep(combinedData.ROI, 'sub-\d+', '');
+    % Write combined data to a single CSV file
+    writetable(combinedData, fullfile(resdir,'all_subjects_combined.csv'));
 end
