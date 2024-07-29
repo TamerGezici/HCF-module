@@ -1,6 +1,6 @@
 %% Perform second level searchlight analysis using SPM on data from TDT.
 
-function hcf_searchlight_group(subjectsDir, smoothingFWHM)
+function hcf_searchlight_group(subjectsDir, smoothingFWHM, explicit_mask)
     % Get a list of subject folders
     subjectFolders = dir(subjectsDir);
     subjectFolders = subjectFolders([subjectFolders.isdir]);
@@ -44,7 +44,7 @@ function hcf_searchlight_group(subjectsDir, smoothingFWHM)
     matlabbatch{1}.spm.stats.factorial_design.des.t1.contrasts = struct('name', conNames, 'convec', conWeights);
     matlabbatch{1}.spm.stats.factorial_design.masking.tm.tm_none = 1;
     matlabbatch{1}.spm.stats.factorial_design.masking.im = 1;
-    matlabbatch{1}.spm.stats.factorial_design.masking.em = {''};
+    matlabbatch{1}.spm.stats.factorial_design.masking.em = cellstr(explicit_mask);
     matlabbatch{1}.spm.stats.factorial_design.globalc.g_omit = 1;
     matlabbatch{1}.spm.stats.factorial_design.globalm.gmsca.gmsca_no = 1;
     matlabbatch{1}.spm.stats.factorial_design.globalm.glonorm = 1;

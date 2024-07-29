@@ -2,7 +2,7 @@
 % MarsBaR batch script to convert roi format to image format
 %% See http://marsbar.sourceforge.net
 %
-roi_dir = 'C:\Users\user\Desktop\roi';
+roi_dir = 'F:\fr-pr-3\analysis\rois\roi_compilation\ROI\MD';
 %Directory with ROIs to convert
 
 % MarsBaR version check
@@ -16,10 +16,10 @@ end
 marsbar('on'); % needed to set paths etc
 
 %For batch converting the contents of a directory of ROIs
-roi_namearray = dir(fullfile(roi_dir, '*_roi.mat'))
+roi_namearray = dir(fullfile(roi_dir, '*.mat'))
 for roi_no = 1:length(roi_namearray)
-roi_array{roi_no} = maroi(fullfile(roi_dir, roi_namearray(roi_no).name));
-roi = roi_array{roi_no};
-name = strtok(roi_namearray(roi_no).name, '.')
-save_as_image(roi, fullfile(roi_dir, [name '.nii']))
+    roi_array{roi_no} = maroi(fullfile(roi_dir, roi_namearray(roi_no).name));
+    roi = roi_array{roi_no};
+    name = strtok(roi_namearray(roi_no).name, '.')
+    save_as_image(roi, fullfile(roi_dir, [name '.nii']))
 end
