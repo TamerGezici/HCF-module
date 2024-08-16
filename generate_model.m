@@ -57,11 +57,26 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
                     if ~isempty(regressor_table) % if not empty.
                         durs = regressor_table.duration;
                         onsets = regressor_table.onset;
-                        aap = aas_addevent(aap,'aamod_firstlevel_model_*',subject_number,...
-                            session_names{session},... % run/session/taskname
-                            current_regressor,... % condition name (regressor name)
-                            onsets',... % onsets
-                            durs'); % durations
+                        if ismember('parametric', regressor_table.Properties.VariableNames) && ~any(isnan(regressor_table.parametric)) % parametric modulator
+                            if ~isfield(aap.tasksettings.aamod_firstlevel_model,'parametric_modulator_name')
+                                error('Please define a parametric modulator name in your user script by setting aap.tasksettings.aamod_firstlevel_model.parametric_modulator_name');
+                            end
+                            parametric.name = aap.tasksettings.aamod_firstlevel_model.parametric_modulator_name; % Define this in your GLM script if you haven't.
+                            parametric.P = regressor_table.parametric;
+                            parametric.h = 1;
+                            aap = aas_addevent(aap,'aamod_firstlevel_model_*',subject_number,...
+                                aap.acq_details.sessions(session).name,... % run/session/taskname
+                                current_regressor,... % condition name (regressor name)
+                                onsets',... % onsets
+                                durs', ...
+                                parametric); % durations
+                        else
+                            aap = aas_addevent(aap,'aamod_firstlevel_model_*',subject_number,...
+                                aap.acq_details.sessions(session).name,... % run/session/taskname
+                                current_regressor,... % condition name (regressor name)
+                                onsets',... % onsets
+                                durs'); % durations
+                        end
                     end
                 end
             end
@@ -79,7 +94,7 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
             participant_sessions = 'sessions:';
             session_names = {aap.acq_details.sessions.name};
             for session = 1:n_sessions % runs (or tasks)
-                session_onsets = events(events(:,1)==session,2:4);
+                session_onsets = events(events(:,1)==session,2:end);
                 session_name = aap.acq_details.sessions(session).name;
                 participant_sessions = strcat(participant_sessions,session_name,'+'); % Sessions which will be processed will be stored in this variable.
                 for condition = 1:(n_conditions) % loop through event types
@@ -88,8 +103,11 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
                         durs = session_onsets(session_events,3);
                         onsets = session_onsets(session_events,2);
                         condition_name = evnames{condition};
-                        if size(session_onsets,2) == 4 && ~any(isnan(session_onsets(:,4))) % parametric modulator
-                            parametric.name = 'parametricmodulator';
+                        if size(session_onsets,2) == 4 && ~any(isnan(session_onsets(session_events,4))) % parametric modulator
+                            if ~isfield(aap.tasksettings.aamod_firstlevel_model,'parametric_modulator_name')
+                                error('Please define a parametric modulator name in your user script by setting aap.tasksettings.aamod_firstlevel_model.parametric_modulator_name');
+                            end
+                            parametric.name = aap.tasksettings.aamod_firstlevel_model.parametric_modulator_name; % Define this in your GLM script if you haven't.
                             parametric.P = session_onsets(session_events,4);
                             parametric.h = 1;
                             aap = aas_addevent(aap,'aamod_firstlevel_model_*',subject_number,...
