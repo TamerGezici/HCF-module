@@ -1,7 +1,7 @@
 function hcf_reslice_rois(beta_path,roi_path)
     content = dir(fullfile(roi_path,'*.nii'));
     rois = char(content.name);
-    VV=char(beta_path,rois);
+    VV=char(beta_path,char(fullfile(roi_path,cellstr(rois))));
     spm_reslice(VV,struct('mean',false,'which',1,'interp',0)); % 1 for linear
 
     % After reslicing, move the files.
@@ -17,6 +17,6 @@ function hcf_reslice_rois(beta_path,roi_path)
 
     % Move all matching files to the "resliced" directory
     for i = 1:numel(content)
-        movefile(content(i).name, fullfile(resliced_out_path, content(i).name));
+        movefile(fullfile(content(i).folder,content(i).name), fullfile(resliced_out_path, content(i).name));
     end
 end

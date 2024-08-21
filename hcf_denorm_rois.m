@@ -1,4 +1,4 @@
-function hcf_denorm_rois_(roi_path,deformation_field_path,out_path)
+function hcf_denorm_rois(roi_path,deformation_field_path,out_path)
 
     marsbar on;
 
@@ -59,14 +59,22 @@ function hcf_denorm_rois_(roi_path,deformation_field_path,out_path)
     input_images = spm_select('FPList', roi_path, '.nii');
     deformation_field_image = spm_select('FPList', deformation_field_path, 'iy_.*\.nii$');
 
-    job.subj.def = cellstr(deformation_field_image);
-    job.subj.resample = cellstr(input_images);
-    job.woptions.bb = [[-78 -112 -70];[78 76 85]];
-    job.woptions.vox = [2 2 2];
-    job.woptions.interp = 4;
-    job.woptions.prefix = 'w';
+    input_images = cellstr(input_images);
+    input_images = deblank(input_images);
 
-    spm_run_norm(job);
+    for roi=1:size(input_images,1)
+
+        input_image = input_images{roi};
+        job.subj.def = cellstr(deformation_field_image);
+        job.subj.resample = cellstr(input_image);
+        job.woptions.bb = [[-78 -112 -70];[78 76 85]];
+        job.woptions.vox = [2 2 2];
+        job.woptions.interp = 4;
+        job.woptions.prefix = 'w';
+    
+        spm_run_norm(job);
+
+    end
 
     denormalised_images = cellstr(spm_select('FPList', roi_path, '^w.*\.nii$'));
 
@@ -91,4 +99,5 @@ function hcf_denorm_rois_(roi_path,deformation_field_path,out_path)
     for i = 1:numel(content)
         movefile(fullfile(roi_path,content(i).name), fullfile(native_out_path, content(i).name));
     end
+    
 end
