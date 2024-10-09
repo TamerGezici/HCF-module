@@ -5,8 +5,10 @@
 function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,contrast_list,contrasts)
     missing_events_acknowledged = false;
     sessions_skipped_acknowledged = false;
+    event_file_session_disparity_acknowledged = false;
     mat_files = dir(fullfile(events_folder, '*.mat'));
     non_BIDS_subjname = false;
+    warning_messages = {};
     if ~isempty(mat_files)
         sample_subs = {mat_files.name};    
         sample_sub = sample_subs(end);
@@ -140,6 +142,7 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
                     missing_events_str = strjoin(missing_events, ' ');
                     if ~isempty(missing_events) && ~missing_events_acknowledged
                         message = sprintf('Event(s) %s for subject %s not found! Click "Ignore all subjects" to acknowledge and ignore all upcoming warnings for all subjects or click "stop" and check your subjects.\nClick "continue" to check missing events subject-by-subject.',missing_events_str,subject_number);
+                        warning_messages{end+1} = message;
                         choice = questdlg(message, 'Event Error', 'Ignore all subjects', 'Stop', 'Continue','Ignore all subjects');
                         switch choice
                             case 'Ignore all subjects'
@@ -176,10 +179,43 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
                 subj_model_indices = find(strcmp({aap.tasksettings.aamod_firstlevel_model.model.subject}, subject_number));
                 for index=1:length(subj_model_indices)
                     sess_index = subj_model_indices(index);
-                    aas_log(aap,false,['WARNING: For  ' subject_number ' task or run ' session_names{index} ' will be used instead of ' aap.tasksettings.aamod_firstlevel_model.model(sess_index).session]);
+                    original_task = session_names{index};
+                    replacement_task = aap.tasksettings.aamod_firstlevel_model.model(sess_index).session;
+                    if ~strcmp(original_task,replacement_task) % Only present error message if they are not the same task.
+                        message = ['WARNING: For  ' subject_number ' task or run ' original_task ' will be used instead of ' replacement_task];
+                        warningMessages{end+1} = message;
+                        aas_log(aap,false,message);
+                    end
                     aap.tasksettings.aamod_firstlevel_model.model(sess_index).session = session_names{index};
                 end
             end
+        end
+        subj_acq_index = find(strcmp({aap.acq_details.subjects.subjname}, subject_number));
+        subject_available_sessions = aap.acq_details.subjects(subj_acq_index).seriesnumbers{1};
+        subject_available_session_count = find(cellfun(@isstruct, subject_available_sessions));
+        run_difference = length(subject_available_session_count) - n_sessions;
+        if (run_difference ~= 0) && ~event_file_session_disparity_acknowledged
+            if run_difference > 0
+                message = sprintf('For subject %s, there are %d more runs (sessions) found in the event file than you are analyzing. It may be worth checking your event file or selected task names and ensure they are correct.  Click "Ignore all subjects" to acknowledge and ignore all upcoming warnings for all subjects or click "stop" and check your subjects.',subject_number,run_difference);
+            else
+                message = sprintf('For subject %s, there are %d less runs (sessions) found in the event file than you are analyzing. It may be worth checking your event file or selected task names and ensure they are correct.  Click "Ignore all subjects" to acknowledge and ignore all upcoming warnings for all subjects or click "stop" and check your subjects.',subject_number,run_difference);
+            end
+            warning_messages{end+1} = message;
+            choice = questdlg(message, 'Event file run count and task name count mismatch', 'Ignore all subjects', 'Stop', 'Ignore all subjects');
+            switch choice
+                case 'Ignore all subjects'
+                    event_file_session_disparity_acknowledged = true;
+                case 'Stop'
+                    error('Stopped the script as per user request'); 
+            end
+        end
+    end
+    if ~isempty(warning_messages)
+        allWarnings = strjoin(warning_messages, '\n');
+        choice = questdlg(allWarnings,'Warning: replaced sessions','Cancel','Continue','Continue');
+        switch choice
+            case 'Cancel'
+                error('Stopped the script as per user request'); 
         end
     end
     aa_structure = aap;

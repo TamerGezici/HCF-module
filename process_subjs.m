@@ -40,7 +40,7 @@ function [aa_structure] = process_subjs(subj_list,aap,DATA_PATH,session_identifi
         anat_path = dir(fullfile(anat_dir,[anat_select '.nii'])); % Get the first structural image.
         anat_hdr = dir(fullfile(anat_dir,[anat_select '.json'])); % Get the header file for the structural image
 
-        if ~isfile(fullfile(anat_path.folder,anat_path.name))
+        if isempty(anat_path) || ~isfile(fullfile(anat_path.folder,anat_path.name))
             error("Subject %s does not have a structural image. Please check your data. Maybe you set the raw data path or BIDS session/visit incorrectly?", subj)
         end
 
