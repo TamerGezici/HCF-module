@@ -6,6 +6,7 @@ function hcf_create_rdms(rdms_path, out_path, vars, rois, subjs)
     out_subjs = fullfile(out_path,'subjs');
     out_flattened_path = fullfile(out_path,'flattened');
     subjs_sessions = fullfile(out_path,'subjs_sessions');
+    out_subjs_averaged = fullfile(out_path,'subjs_averaged');
     out_flattened_sessions = fullfile(out_path,'flattened_sessions');
 
     if exist(out_path)~=7
@@ -14,6 +15,7 @@ function hcf_create_rdms(rdms_path, out_path, vars, rois, subjs)
         mkdir(out_flattened_path);
         mkdir(out_flattened_sessions);
         mkdir(subjs_sessions);
+        mkdir(out_subjs_averaged);
     end
 
     % Load RDMs matrice
@@ -28,6 +30,7 @@ function hcf_create_rdms(rdms_path, out_path, vars, rois, subjs)
     num_vars = length(vars);
 
     row_names = {}; % Initialize row names
+    row_names_filled = false;
     % Iterate through each ROI
     for roi = 1:total_rois
         all_RDM_values = [];
@@ -53,13 +56,14 @@ function hcf_create_rdms(rdms_path, out_path, vars, rois, subjs)
             % Extract upper triangular values excluding diagonal
             for i = 1:num_vars
                 for j = i+1:num_vars
-                    if subj == 1 && roi == 1
+                    if ~row_names_filled
                         % Only generate row names once, during the first subject loop
                         row_names{end+1} = sprintf('%s_VS_%s', vars{i}, vars{j});
                     end
                     subj_RDM_values(end+1, 1) = avg_RDM(i, j);
                 end
             end
+            row_names_filled = true;
     
             % Concatenate RDM values for all subjects
             all_RDM_values = [all_RDM_values, subj_RDM_values];
@@ -80,7 +84,8 @@ function hcf_create_rdms(rdms_path, out_path, vars, rois, subjs)
     end
     
     row_names = {}; % Initialize row names for the variables (only need to generate once per ROI)
-    
+    row_names_filled = false;
+
     % Iterate through each ROI
     for roi = 1:total_rois
         % Loop through each run
@@ -105,10 +110,6 @@ function hcf_create_rdms(rdms_path, out_path, vars, rois, subjs)
                 % Extract upper triangular values excluding diagonal
                 for i = 1:num_vars
                     for j = i+1:num_vars
-                        if subj == 1 && run == 1
-                            % Only generate row names once, during the first subject loop and run
-                            row_names{end+1} = sprintf('%s_VS_%s', vars{i}, vars{j});
-                        end
                         subj_RDM_values(end+1, 1) = subj_RDM(i, j);
                     end
                 end
@@ -156,6 +157,7 @@ function hcf_create_rdms(rdms_path, out_path, vars, rois, subjs)
 
     for roi = 1:total_rois
         num_runs = size(RDMs(:, :,:), 3); % Assuming the third dimension is the number of runs
+        ROI_accumulated_RDM = 0;
 
         for subj = 1:total_subjects
             % Initialize a variable to accumulate the RDMs for all runs
@@ -172,6 +174,7 @@ function hcf_create_rdms(rdms_path, out_path, vars, rois, subjs)
             
             % Calculate the average RDM for the subject and ROI
             avg_RDM = accumulated_RDM / subj_available_runs;
+            ROI_accumulated_RDM = ROI_accumulated_RDM + avg_RDM;
             
             % Create the output path for the subject
             subj_out_path = fullfile(out_subjs, subjs{subj});
@@ -183,5 +186,9 @@ function hcf_create_rdms(rdms_path, out_path, vars, rois, subjs)
             T = array2table(avg_RDM, 'VariableNames', vars, 'RowNames', vars);
             writetable(T, fullfile(subj_out_path, [rois{roi}, '.csv']), 'WriteRowNames', true, 'WriteVariableNames', true);
         end
+        
+        ROI_avg_RDM = ROI_accumulated_RDM / total_subjects;
+        T = array2table(ROI_avg_RDM, 'VariableNames', vars, 'RowNames', vars);
+        writetable(T, fullfile(out_subjs_averaged, [rois{roi}, '.csv']), 'WriteRowNames', true, 'WriteVariableNames', true);
     end
 end

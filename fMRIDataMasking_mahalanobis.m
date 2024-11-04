@@ -44,14 +44,13 @@ for mask = 1:nMasks
         load(SPM_path);
         struct_mask.fname = mask_path;
         normalisedPatterns = noiseNormaliseBeta_roi(SPM,struct_mask);
-        run_numbers = cellfun(@(name) sscanf(name, 'Sn(%d)'), SPM.xX.name);
-        max_run_number = max(run_numbers);
-        maskVoxelPatterns = zeros(size(normalisedPatterns,2), size(userOptions.conditionLabels,1) , max_run_number);
+        subj_total_runs = userOptions.subject_sessions(subject);
+        maskVoxelPatterns = zeros(size(normalisedPatterns,2), size(userOptions.conditionLabels,1) , subj_total_runs);
         fprintf("\nNormalizing betas for %s ROI: %s\n", thisSubject, thisMask);
         all_beta_names = SPM.xX.name;
         betas_of_interest = userOptions.conditionLabels;
 
-        for run_no=1:max_run_number
+        for run_no=1:subj_total_runs
             for regressor=1:size(betas_of_interest,1)
                 beta_name = betas_of_interest{regressor};
                 beta_name = sprintf('Sn(%d) %s*bf(1)',run_no,beta_name);

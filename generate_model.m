@@ -129,13 +129,21 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
                 end
             end
         end
+        % Check if model specifications have been found.
+        subj_indices = find(strcmp({aap.tasksettings.aamod_firstlevel_model.model.subject}, subject_number));
+        for subj_i=1:size(subj_indices,2)
+            if isempty(aap.tasksettings.aamod_firstlevel_model.model(subj_indices(subj_i)).event)
+                message = sprintf('GLM specification for %s is empty. This could be due to an error in the events. Please fix before proceeding.',subject_number);
+                error(message); 
+            end
+        end
         %% Specify contrasts PER participant here.
         %% If you will estimate a model with no contrasts, pass an empty array to the function.
         if ~isempty(contrasts)
             participant_sessions = 'sameforallsessions';
             for i=1:size(contrast_list,2) % loop over your contrasts
                 curr_contrast = contrast_list{i};
-                if istable(events)
+                if istable(events) && ~isvector(contrasts(curr_contrast))
                     unique_events = unique(events.event)';
                     contrast_events = regexp(contrasts(curr_contrast), '(?<=x)(.*?)(?=\||$)', 'match');
                     missing_events = setdiff(contrast_events, unique_events);
@@ -183,7 +191,7 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
                     replacement_task = aap.tasksettings.aamod_firstlevel_model.model(sess_index).session;
                     if ~strcmp(original_task,replacement_task) % Only present error message if they are not the same task.
                         message = ['WARNING: For  ' subject_number ' task or run ' original_task ' will be used instead of ' replacement_task];
-                        warningMessages{end+1} = message;
+                        warning_messages{end+1} = message;
                         aas_log(aap,false,message);
                     end
                     aap.tasksettings.aamod_firstlevel_model.model(sess_index).session = session_names{index};
