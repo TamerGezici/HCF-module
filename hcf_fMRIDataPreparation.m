@@ -1,5 +1,31 @@
 function [varargout] = hcf_fMRIDataPreparation(betaCorrespondence, userOptions)
 
+%%% This function has been created from original RSA Toolbox function fMRIDataPreparation
+%%% You need to use this function instead of original if you want to
+
+%%% 1)use all subjects' data or all sessions of subjects
+%%% original RSA toolbox gets the lowest session number across subjects data (indeed you need to arrange 
+%%% them in that way; otherwise there will be an error) and only processes that number of sessions across 
+%%% subjects (e.g. if the lowest number of sessions is 2, the RSA processes only 2 session of a subject even if she has 6 sessions!)
+%%% The number of session is calculated in RSA analysis script subject specific 
+%%% (i.e. userOptions.subject_sessions = hcf_count_runs(glm_path,userOptions.subjectNames,userOptions);, and resulting variable
+%%% userOptions.subject_sessions overwritten on to default code. hcf_count_runs is a custom hcf script located in HCF-module
+
+%%% 2)use all sessions (runs) and subjects who has missing regressors in one or more sessions
+%%% While using original RSA toolbox functions, If you have missing regressors (no beta exists in that session for a regressor)
+%%% in some sessions and if you do not
+%%% exclude these sessions; there may be huge problems; RSA may mistakenly gets wrong beta images for a regressor 
+%%% since it relies on betaCorrespondence
+%%% Hence, if you have very less occasion of missing regressor; just remove these sessions
+%%% Hovever, if you have too much of this, you may use this function to not loose all session data, and subject data
+%%% This modified functions creates dummy beta images for the nonexisted betas. 
+
+                    % %%%% CREATE A DUMMY BETA IF IT DOESN'T EXIST!
+                    % dims = SPM.xVol.DIM; %% The dimensions of the 3D array (volume of functional scan) is obtained from SPM.mat subject-specific
+                    % dummyMatrix = ones(dims(1), dims(2), dims(3));
+                    % brainMatrix = dummyMatrix;
+                    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 import rsa.*
 import rsa.fig.*
 import rsa.fmri.*
@@ -60,7 +86,7 @@ if overwriteFlag
         load(fullfile(userOptions.glm_path,thisSubject,'stats','SPM.mat'));
 
 		fprintf(['Reading beta volumes for subject number ' num2str(subject) ' of ' num2str(nSubjects) ': ' thisSubject]);
-        nSessions = userOptions.subject_sessions(subject);        
+        nSessions = userOptions.subject_sessions(subject);    %%% THIS OVERWRITES ON nSessions SO THAT nSessions IS SUBJECT SPECIFIC
 		for session = 1:nSessions % For each session...
 			 for condition = 1:nConditions % and each condition...
                
@@ -75,7 +101,8 @@ if overwriteFlag
                     end
                 elseif ~ismember(condition_name,SPM.xX.name)
                     %%%% CREATE A DUMMY BETA IF IT DOESN'T EXIST!
-                    dummyMatrix = ones(79, 95, 79); % May require modification incase it throws an error. These numbers are specific to your data.
+                    dims = SPM.xVol.DIM; %% The dimensions of the 3D array (volume of functional scan) is obtained from SPM.mat subject-specific
+                    dummyMatrix = ones(dims(1), dims(2), dims(3));
                     brainMatrix = dummyMatrix;
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 end
