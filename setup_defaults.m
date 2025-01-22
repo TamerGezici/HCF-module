@@ -11,7 +11,17 @@ function [aa_struct] = setup_defaults(aap,RESULTS_DIR,DATA_PATH,ROOT_PATH,TPM_DI
     aap.acq_details.input.correctEVfordummies = 0;
     aap.options.NIFTI4D = process_4D;
     aap.options.garbagecollection = garbage_collection;
-    %
+    
+    % %
+    % % % Check if SPM was running earlier. It throws a tolorient error in the
+    % % % upcoming steps. We can prevent this by detecting the error
+    % % % beforehand.
+    % try
+    %     spm_get_defaults('images.tolorient');
+    % catch ME
+    % %     error("SPM was running earlier. Please re-start MATLAB before running the script again.")
+    % end
+
     aa_struct = aap;
 end
 

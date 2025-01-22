@@ -2,7 +2,7 @@
 % MarsBaR batch script to convert roi format to image format
 %% See http://marsbar.sourceforge.net
 %
-roi_dir = 'F:\fr-pr-3\analysis\rois\roi_compilation\ROI\MD';
+roi_dir = 'E:\patient_studies\analysis\patient_MVPA\rois\sub-48_FIR_rois';
 %Directory with ROIs to convert
 
 % MarsBaR version check

@@ -22,9 +22,16 @@ function [aa_structure] = create_named_contrasts(aap)
             contrast_name = contrasts{con};
             contrast_dir = fullfile(contrasts_dir,contrast_name);
             spm_contrasts = cellstr(spm_select('FPList', contrast_dir, '^spm[TF].*\.nii$'));
+            assumed_glm_path = ['GLM_results' filesep];
+            glm_results_analysisid = '';
+            startIndex = strfind(aap.directory_conventions.analysisid, assumed_glm_path);
+            if ~isempty(startIndex)
+                restOfStringIndex = startIndex + length(assumed_glm_path);
+                glm_results_analysisid = aap.directory_conventions.analysisid(restOfStringIndex:end);
+            end
             for i = 1:length(spm_contrasts)
                 [~, name, ext] = fileparts(spm_contrasts{i});
-                new_contrast_name = sprintf('%s_%s_%s%s', 'group',name, contrast_name, ext);
+                new_contrast_name = sprintf('%s_%s_%s_%s%s', name, contrast_name, glm_results_analysisid, 'group', ext);
                 copyfile(spm_contrasts{i}, fullfile(contrast_dir, new_contrast_name));
             end
         end

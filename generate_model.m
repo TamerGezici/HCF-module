@@ -129,21 +129,13 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
                 end
             end
         end
-        % Check if model specifications have been found.
-        subj_indices = find(strcmp({aap.tasksettings.aamod_firstlevel_model.model.subject}, subject_number));
-        for subj_i=1:size(subj_indices,2)
-            if isempty(aap.tasksettings.aamod_firstlevel_model.model(subj_indices(subj_i)).event)
-                message = sprintf('GLM specification for %s is empty. This could be due to an error in the events. Please fix before proceeding.',subject_number);
-                error(message); 
-            end
-        end
         %% Specify contrasts PER participant here.
         %% If you will estimate a model with no contrasts, pass an empty array to the function.
         if ~isempty(contrasts)
             participant_sessions = 'sameforallsessions';
             for i=1:size(contrast_list,2) % loop over your contrasts
                 curr_contrast = contrast_list{i};
-                if istable(events) && ~isvector(contrasts(curr_contrast))
+                if istable(events)
                     unique_events = unique(events.event)';
                     contrast_events = regexp(contrasts(curr_contrast), '(?<=x)(.*?)(?=\||$)', 'match');
                     missing_events = setdiff(contrast_events, unique_events);
@@ -168,8 +160,8 @@ function [aa_structure] = generate_model(aap,subj_list,events_folder,evnames,con
         % If we are doing analysis for different runs or tasks
         if (isfield(aap.options,'skip_sessions') && aap.options.skip_sessions)
             if ~sessions_skipped_acknowledged
-                message = sprintf("You enabled aap.options.skip_sessions.\nThis means that if a task or run is unavailable\n" + ...
-                    "for a participant, it will be skipped and replaced with the available session for that participant.\n" + ...
+                message = sprintf("You enabled aap.options.skip_sessions.\nThis means that if a task or run is unavailable for a participant" + ...
+                    "it will be skipped and replaced with the available task to that participant.\n" + ...
                     "If you don't know what this pertains to, you should disable this feature or consult Tamer before continuing analysis.\n\nClick continue if you know what you are doing.");
                 choice = questdlg(message,'Warning: aap.options.skip_sessions is enabled','Cancel','Continue','Continue');
                 switch choice

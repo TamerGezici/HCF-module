@@ -46,9 +46,12 @@ function [group_level_results] = estimate_rois_native(subjects,first_level_dir,s
         nrois = size(roi_names,2);
         res.rois = roi_name;      
 
-
         % Loop through ROIs
         for r=1:nrois
+            if nrois == 0
+                error("No rois found!");
+            end
+
             croi = roi_names{r};
             disp([csub croi]);
             roi_path = fullfile(roi_dir,csub,croi);

@@ -30,7 +30,10 @@ function [recipe] = hcf_get_recipe(path,tasklist,user_param_name)
       recipe_path = fullfile(recipe_folder,['GLM_group_nomask','.xml']);
    elseif strcmp(tasklist,'glm_threshold')
       recipe_path = fullfile(recipe_folder,['GLM_threshold','.xml']);
+   else
+      error("Could not find any recipe to load. Please check your function call."); 
    end
+
    recipe = aarecipe(user_param_path,recipe_path);
 end
 

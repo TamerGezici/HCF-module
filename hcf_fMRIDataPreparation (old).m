@@ -25,12 +25,6 @@ function [varargout] = hcf_fMRIDataPreparation(betaCorrespondence, userOptions)
                     % dummyMatrix = ones(dims(1), dims(2), dims(3));
                     % brainMatrix = dummyMatrix;
                     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% The computed distance between a regressor and dummy beta will result in NaNs ; since the any vector should need variance
-%%% to be able to contain it in a correlation
-
-% % % Constant Values in Vectors: If vector1 or vector2 contains only constant values (e.g., all ones in dummyMatrix), 
-% % % the correlation cannot be computed, and pdist will return NaN. This is because correlation involves dividing 
-% % % by the standard deviation, which is zero for a constant vector, leading to undefined results.
 
 import rsa.*
 import rsa.fig.*
@@ -81,25 +75,24 @@ if overwriteFlag
 
 		% Figure out the subject's name
 		thisSubject = userOptions.subjectNames{subject};
-        if userOptions.BIDSdata
-            if isempty(strfind(thisSubject,'-'))
-                index = strfind(thisSubject,'b');
-                replace = [thisSubject(1:index) '-'];
-                thisSubject = strrep(thisSubject,'sub',replace);
-            end
-        end
+		if userOptions.BIDSdata
+			if isempty(strfind(thisSubject,'-'))
+				index = strfind(thisSubject,'b');
+				replace = [thisSubject(1:index) '-'];
+				thisSubject = strrep(thisSubject,'sub',replace);
+			end
+		end
 
-        betas_subject_specific = getDataFromSPM_SubjectSpecific(userOptions,thisSubject); %% MODIFIED BY ADEM ; the created function enables to obtain subject specific beta correpondence ( what beta image belongs to what regressor etc.)
-       
         load(fullfile(userOptions.glm_path,thisSubject,'stats','SPM.mat'));
 
 		fprintf(['Reading beta volumes for subject number ' num2str(subject) ' of ' num2str(nSubjects) ': ' thisSubject]);
-        nSessions = userOptions.subject_sessions(subject);  %%ADDED BY TAMER  %%% THIS OVERWRITES ON nSessions SO THAT nSessions IS SUBJECT SPECIFIC
+        nSessions = userOptions.subject_sessions(subject);    %%% THIS OVERWRITES ON nSessions SO THAT nSessions IS SUBJECT SPECIFIC
 		for session = 1:nSessions % For each session...
 			 for condition = 1:nConditions % and each condition...
+               
                 condition_name = sprintf('Sn(%d) %s*bf(1)', session, userOptions.conditionLabels{condition});
                 if ismember(condition_name,SPM.xX.name)
-				    readPath = replaceWildcards(userOptions.betaPath, '[[betaIdentifier]]', betas_subject_specific(session,condition).identifier, '[[subjectName]]', thisSubject);
+				    readPath = replaceWildcards(userOptions.betaPath, '[[betaIdentifier]]', betas(session,condition).identifier, '[[subjectName]]', thisSubject);
                     if strcmp(betaCorrespondence,'SPM')
                         brainMatrix = spm_read_vols(spm_vol(readPath));
                     else
